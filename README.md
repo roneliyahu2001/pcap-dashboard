@@ -1,10 +1,10 @@
 # PCAP Dashboard V1
 
-כלי שמקבל קובץ PCAP או PCAPNG, מחלץ ממנו את המידע בעצמו (בלי Wireshark) ועונה על שאלות בעזרת AI. לכל תשובה הוא מציג גם את ה-evidence שעליה היא מבוססת.
+A tool that takes a PCAP or PCAPNG file, extracts the information itself (no Wireshark needed), and answers questions about it with AI. Every answer comes with the evidence it is based on.
 
-## התקנה
+## Installation
 
-דרוש Python 3.10 ומעלה.
+Requires Python 3.10 or newer.
 
 ```bash
 python3 -m venv .venv
@@ -12,65 +12,65 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## הרצה
+## Running
 
 ```bash
 streamlit run app.py
 ```
 
-הדפדפן ייפתח בכתובת http://localhost:8501. בסרגל הצד מעלים קובץ PCAP או PCAPNG, או בוחרים קובץ מתיקיית `samples/`.
+The browser opens at http://localhost:8501. In the sidebar, upload a PCAP or PCAPNG file, or pick one from the `samples/` folder.
 
-### מפתח API (לשאלות AI בלבד)
+### API key (only needed for AI questions)
 
-הדשבורד תומך בשלושה ספקי AI. בוחרים ספק בסרגל הצד, ומספיק מפתח של ספק אחד:
+The dashboard supports three AI providers. Choose one in the sidebar; a key for a single provider is enough:
 
-| ספק | איפה משיגים מפתח | משתנה סביבה | מודל ברירת מחדל |
+| Provider | Where to get a key | Environment variable | Default model |
 |---|---|---|---|
 | Claude | console.anthropic.com | `ANTHROPIC_API_KEY` | `claude-opus-5-5` |
 | OpenAI | platform.openai.com | `OPENAI_API_KEY` | `gpt-5` |
 | Google Gemini | aistudio.google.com | `GEMINI_API_KEY` | `gemini-3.5-flash` |
 
-אפשר להדביק את המפתח בשדה שבסרגל הצד, או לקבוע משתנה סביבה לפני ההרצה, למשל:
+Paste the key into the sidebar field, or set the environment variable before running, for example:
 
 ```bash
 export GEMINI_API_KEY="..."
 ```
 
-המפתח נשמר רק בזיכרון של הסשן. אין להכניס מפתח לקוד ואין להגיש אותו.
-אם ספק שינה שם של מודל או הפסיק לתמוך בו, אפשר לכתוב שם אחר בשדה Model.
-בלי מפתח, כל שאר הדשבורד עובד כרגיל. גם בלשונית Ask AI תוצג התשובה שחושבה ישירות מההקלטה.
+The key is kept only in the session's memory. Never put a key in the code or commit it.
+Model names change over time: if you get a "model not found" or "overloaded" error, click **Load available models** in the sidebar and pick another model from the list.
+Without a key the rest of the dashboard works normally, and the Ask AI tab still shows the answer computed directly from the capture.
 
-## מבנה הקבצים
+## Project structure
 
-| קובץ | תפקיד |
+| File | Purpose |
 |---|---|
-| `pcap_analyzer.py` | קורא את ההקלטה באמצעות Scapy, משחזר זרמי TCP (כולל סידור מחדש של מקטעים שהגיעו שלא לפי הסדר והתעלמות מ-retransmissions), מפרסר HTTP/1.x, מתאים בין בקשה לתגובה ומחלץ TLS SNI ו-DNS |
-| `ai_assistant.py` | בונה הקשר JSON מהנתונים שחולצו, שולח אותו לספק שנבחר (Claude, OpenAI או Gemini) עם אותה סכמת תשובה מובנית (answer, evidence, confidence) ומאמת את ה-evidence מול ההקלטה |
-| `app.py` | ממשק Streamlit |
-| `tests/make_test_pcap.py` | יוצר הקלטה **סינתטית** לבדיקה, שהתשובות עליה ידועות מראש |
-| `samples/` | קובצי הקלטה (שימו כאן את ההקלטות שלכם) |
+| `pcap_analyzer.py` | Reads the capture with Scapy, reassembles TCP streams (reorders out-of-order segments and ignores retransmissions), parses HTTP/1.x, matches requests to responses, and extracts TLS SNI and DNS |
+| `ai_assistant.py` | Builds a JSON context from the extracted data, sends it to the chosen provider (Claude, OpenAI or Gemini) with the same structured answer schema (answer, evidence, confidence), and verifies the evidence against the capture |
+| `app.py` | Streamlit user interface |
+| `tests/make_test_pcap.py` | Generates a **synthetic** test capture whose answers are known in advance |
+| `samples/` | Capture files (put your own recordings here) |
 
-## מה יש בכל לשונית (לפי סעיפי המטלה)
+## Tabs (mapped to the assignment sections)
 
-- **Overview** (23–26): מספר חבילות, זמן התחלה, זמן סיום ומשך ההקלטה, כתובות הקצה העיקריות, התפלגות פרוטוקולים, וגרף נפח תעבורה לאורך זמן.
-- **HTTP** (27–29): טבלה של כל הטרנזקציות (Method, Host, URI, מקור ויעד, Status, זמן תגובה, frame של הבקשה ו-frame של התגובה). בבחירת טרנזקציה מוצגים הכותרות, פרמטרי הטופס או ה-query, וכמה מקטעי TCP הרכיבו את התגובה.
-- **Follow Stream**: השיחה המלאה של זרם TCP, צבועה לפי כיוון (כמו Follow HTTP Stream ב-Wireshark).
-- **HTTP vs HTTPS** (יצירתיות): מה נשאר גלוי בתעבורה מוצפנת, כלומר שמות שרתים מתוך ה-SNI, שאילתות DNS ונפחי תעבורה.
-- **Ask AI** (30–34): שאלה בשפה חופשית, בעברית או באנגלית. מוצגות תשובה, רמת ביטחון ו-evidence (frames ו-timestamps). כל frame מאומת מול ההקלטה, והתשובה מושווית לחישוב ישיר בפייתון. אפשר להוריד יומן של כל השאלות והתשובות ולצרף אותו לסעיפים 33–34.
-- **Packets**: סינון אינטראקטיבי לפי פרוטוקול, IP ופורט.
+- **Overview** (23–26): packet count, start time, end time and duration, main endpoints, protocol distribution, and a traffic-volume-over-time chart.
+- **HTTP** (27–29): a table of all transactions (method, host, URI, source and destination, status, response time, request frame and response frame). Selecting a transaction shows its headers, form or query parameters, and how many TCP segments made up the response.
+- **Follow Stream**: the full conversation of a TCP stream, colored by direction (like Wireshark's Follow HTTP Stream).
+- **HTTP vs HTTPS** (creative feature): what is still visible in encrypted traffic: server names from the TLS SNI, DNS queries and traffic volumes.
+- **Ask AI** (30–34): free-text questions in English or Hebrew. Shows the answer, a confidence level and evidence (frames and timestamps). Every cited frame is verified against the capture, and the answer is compared with a value computed directly in Python. The full Q&A log can be downloaded and attached for sections 33–34.
+- **Packets**: interactive filtering by protocol, IP address and port.
 
-## איך התשובה של ה-AI נבדקת
+## How AI answers are checked
 
-1. ה-AI מקבל **רק** JSON עם נתונים שחולצו מראש. קובץ ה-PCAP עצמו לא נשלח למודל.
-2. כל frame שה-AI מצטט נבדק: האם הוא קיים בהקלטה, והאם ה-timestamp שצוטט תואם לזמן האמיתי שלו.
-3. בשאלות מהסוגים שמופיעים במטלה (הבקשה האיטית ביותר, Status Codes, מספר בקשות ל-Host, ה-Stream שנבחר) הדשבורד מחשב את התשובה גם ישירות בפייתון. אם ה-frames שה-AI ציטט לא חופפים לחישוב הישיר, מוצגת אזהרה.
+1. The AI receives **only** JSON with data that was already extracted. The PCAP file itself is never sent to the model.
+2. Every frame the AI cites is checked: does it exist in the capture, and does the cited timestamp match its real time?
+3. For the question types listed in the assignment (slowest request, status codes, number of requests to a host, the selected stream), the dashboard also computes the answer directly in Python. If the AI's frames do not overlap the computed ones, a warning is shown.
 
-## מספור frames וזמני תגובה
+## Frame numbers and response times
 
-מספרי ה-frame זהים לאלה של Wireshark (מתחילים מ-1). כשתגובה מפוצלת לכמה מקטעי TCP, ה-frame שלה הוא המקטע שהשלים אותה, כמו ב-Wireshark. זמן התגובה מחושב בין ה-frame של הבקשה ל-frame של התגובה, בדומה לשדה `http.time`.
+Frame numbers match Wireshark's (starting at 1). When a response is split across several TCP segments, its frame is the segment that completed it, as in Wireshark. Response time is measured from the request frame to the response frame, like Wireshark's `http.time` field.
 
-## מגבלות ידועות
+## Known limitations
 
-- מפורסר HTTP/1.x בלבד. ‏HTTP/2 ו-HTTP/3 (QUIC) רצים בדרך כלל מעל TLS, ולכן ממילא אינם קריאים.
-- אם חסר מקטע TCP בהקלטה (packet loss), השחזור נעצר בנקודה החסרה.
-- לפני השליחה ל-AI ההקשר מוגבל ל-300 טרנזקציות. אם יש יותר, ה-AI מקבל על כך הודעה.
+- Only HTTP/1.x is parsed. HTTP/2 and HTTP/3 (QUIC) usually run over TLS, so they are not readable anyway.
+- If a TCP segment is missing from the capture (packet loss), reassembly stops at the gap.
+- The context sent to the AI is limited to 300 transactions; if there are more, the AI is told so.
